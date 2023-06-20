@@ -7,7 +7,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 
 from hubspot import HubSpot
-from hubspot.crm.contacts import SimplePublicObjectInput
+from hubspot.crm.contacts import SimplePublicObjectInput, PublicObjectSearchRequest
 from hubspot.crm.contacts.exceptions import ApiException
 
 from database import SessionLocal
@@ -22,6 +22,7 @@ class Contact(BaseModel):
     lastname: str = 'Santander'
     phone: str = '08123456789'
     website: str = 'https://test.com'
+    estado_clickup: str = 'pending'
 
 class Apicall(BaseModel):
     id: Optional[int]
@@ -50,18 +51,38 @@ def add_data_analyst(data: dict):
 
 
 
-# @app.get('/db/get', response_model=List[Apicall], status_code=200, tags=['database'])
-# def get_all():
-#     users = db.query(models.Apicall).all()
-#     return users
-
 @app.get('/sync', tags=['sync'])
-def sync():
+async def sync():
+    x = 0
+    data = {}
 
-    
-    return {'message': 'sync'}
+    try:
+        all_contacts = api_client.crm.contacts.get_all()
+
+        for contact in all_contacts:
+
+            contact = contact.properties
+            data[x] = contact
+            x+=1
+
+            # if contact['estado_clickup'] == 'pending':
+
+            #     contact['estado_clickup'] = 'sync'
+            #     simple_public_object_input = SimplePublicObjectInput(
+            #         properties=contact
+            #     )
+            #     api_response = api_client.crm.contacts.basic_api.update(
+            #         contact_id=contact_id,
+            #         simple_public_object_input=simple_public_object_input
+            #     )
+
+                
+
+        return {'message': 'sync completed', 'contacts': data}
 
 
+    except ApiException as e:
+        return {'message': "Exception when creating contact: %s\n" % e.body}
 
 
 @app.post('/contact/add',status_code=201, tags=['contact'])
